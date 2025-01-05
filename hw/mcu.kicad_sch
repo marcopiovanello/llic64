@@ -5219,6 +5219,15 @@
 				(hide yes)
 			)
 		)
+		(property "LCSC Part #" "C1525"
+			(at 142.24 34.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "2"
 			(uuid "062e399c-9424-479a-968b-31c7ea108932")
 		)
@@ -5347,6 +5356,15 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 66.04 33.02 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC Part #" "C1525"
 			(at 66.04 33.02 0)
 			(effects
 				(font
@@ -5557,6 +5575,15 @@
 				(hide yes)
 			)
 		)
+		(property "LCSC Part #" "C1525"
+			(at 184.15 34.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "2"
 			(uuid "048e1f2e-1a2c-47c8-9993-32162af89338")
 		)
@@ -5694,6 +5721,15 @@
 				(hide yes)
 			)
 		)
+		(property "LCSC Part #" "C1525"
+			(at 153.67 34.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "1"
 			(uuid "a115a408-c40d-498b-8db2-6480b2376c1d")
 		)
@@ -5755,6 +5791,15 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 55.88 33.02 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC Part #" "C1525"
 			(at 55.88 33.02 0)
 			(effects
 				(font
@@ -6630,6 +6675,15 @@
 				(hide yes)
 			)
 		)
+		(property "LCSC Part #" "C1525"
+			(at 130.81 34.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "1"
 			(uuid "6ec9227a-ef5a-4c8c-b5dc-112c63489a6e")
 		)
@@ -6871,6 +6925,15 @@
 				(hide yes)
 			)
 		)
+		(property "LCSC Part #" "C1525"
+			(at 163.83 34.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "2"
 			(uuid "58e93aba-e9aa-4f74-abbd-e9b92ce34b0a")
 		)
@@ -6933,6 +6996,15 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 173.99 34.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC Part #" "C1525"
 			(at 173.99 34.29 0)
 			(effects
 				(font
@@ -7133,6 +7205,15 @@
 		)
 		(property "Description" "Unpolarized capacitor"
 			(at 199.39 106.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC Part #" "C1525"
+			(at 199.39 106.68 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -7424,6 +7505,15 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 194.31 34.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC Part #" "C1525"
 			(at 194.31 34.29 0)
 			(effects
 				(font
