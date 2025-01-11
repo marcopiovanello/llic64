@@ -37,9 +37,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 1.0,
-          "height": 1.6,
-          "width": 1.6
+          "drill": 0.0,
+          "height": 0.875,
+          "width": 0.2
         },
         "silk_line_width": 0.1,
         "silk_text_italic": false,
@@ -121,7 +121,7 @@
       },
       "rules": {
         "max_error": 0.005,
-        "min_clearance": 0.15,
+        "min_clearance": 0.2,
         "min_connection": 0.05,
         "min_copper_edge_clearance": 0.2,
         "min_hole_clearance": 0.2,
@@ -478,7 +478,7 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.2,
-        "via_diameter": 0.6,
+        "via_diameter": 0.65,
         "via_drill": 0.3,
         "wire_width": 6
       },
@@ -637,14 +637,6 @@
     [
       "c0a8c865-bfb9-4cf6-a379-57d03dfeed40",
       "C64_controls"
-    ],
-    [
-      "c3181ac2-c9ce-4d6b-9a63-f46f0831ea96",
-      "USB"
-    ],
-    [
-      "909d52eb-e3c8-4283-8910-bee46d22a5bb",
-      "misc"
     ]
   ],
   "text_variables": {}

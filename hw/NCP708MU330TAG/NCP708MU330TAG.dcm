@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP NCP708MU330TAG
+D LDO Regulator Pos 3.3V 1A 6-Pin UDFN EP T/R
+K
+F https://www.onsemi.com/pub/Collateral/NCP708-D.PDF
+$ENDCMP
+#
+#End Doc Library

@@ -1,4 +1,4 @@
-24412649034322700
+24417857899154222
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -49567,6 +49567,13 @@ four-pin M8
 6
 5
 Connector_USB
+CONN_UJ2-AH-SMT_CUD
+
+UJ2-AH-4-SMT-TR 
+0
+6
+6
+Connector_USB
 USB3_A_Molex_48393-001
 USB 3.0, type A, right angle, http://www.molex.com/pdm_docs/sd/483930003_sd.pdf
 USB 3.0 type A right angle
@@ -72758,6 +72765,13 @@ HVQFN NoLead
 67
 41
 Package_DFN_QFN
+IC_SN74AUC08RGYRG4
+
+
+0
+19
+19
+Package_DFN_QFN
 Infineon_MLPQ-16-14-1EP_4x4mm_P0.5mm
 MLPQ 32 leads, 7x7mm, 0.127mm stencil (https://www.infineon.com/dgdl/Infineon-AN1170-AN-v05_00-EN.pdf?fileId=5546d462533600a40153559ac3e51134)
 mlpq 32 7x7mm
@@ -82858,6 +82872,13 @@ SON NoLead
 0
 13
 9
+Package_SON
+SON95P300X300X55-7N
+UDFN6-
+Integrated Circuit
+0
+7
+7
 Package_SON
 ST_PowerFLAT-6L_5x6mm_P1.27mm
 Thermally-enhanced 5x6mm 6-pin package, https://www.st.com/resource/en/datasheet/stl40dn3llh5.pdf
