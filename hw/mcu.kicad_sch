@@ -5380,6 +5380,15 @@
 				(hide yes)
 			)
 		)
+		(property "LCSC Part #" "C11702"
+			(at 243.84 118.11 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "1"
 			(uuid "f30de147-903f-41b0-b956-d15dbf7fb584")
 		)
