@@ -1,4 +1,4 @@
-24417857899154222
+24419594923676603
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -82774,6 +82774,13 @@ HVSON NoLead
 0
 13
 9
+Package_SON
+IC_SN74AUC08RGYRG4
+
+
+0
+19
+19
 Package_SON
 Infineon_PG-LSON-8-1
 https://www.infineon.com/cms/en/product/packages/PG-LSON/PG-LSON-8-1/
