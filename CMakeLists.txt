@@ -29,7 +29,7 @@ add_executable(${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/board_output.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/hid_app.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/hid_app.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
         )
 
@@ -41,3 +41,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} pico_stdlib pico_multicore tinyusb_host)
 
 pico_add_extra_outputs(${PROJECT_NAME})
+
+pico_enable_stdio_uart(${PROJECT_NAME} 1)

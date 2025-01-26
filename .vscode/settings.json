@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "tusb.h": "c",
+        "unordered_set": "cpp"
+    }
+}

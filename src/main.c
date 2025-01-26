@@ -18,6 +18,7 @@ extern void hid_app_task(void);
 int main(void)
 {
   board_output_init();
+  stdio_uart_init();
 
   multicore_launch_core1(led_blinking_task);
 
