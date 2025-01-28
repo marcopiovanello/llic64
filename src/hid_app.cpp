@@ -14,7 +14,7 @@ using namespace std;
 // MACRO TYPEDEF CONSTANT ENUM DECLARATION
 //--------------------------------------------------------------------+
 
-extern "C" void hid_app_task(void) 
+extern "C" void hid_app_task(void)
 {
     return;
 }
@@ -22,6 +22,7 @@ extern "C" void hid_app_task(void)
 //--------------------------------------------------------------------+
 // TinyUSB Callbacks
 //--------------------------------------------------------------------+
+
 void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *desc_report, uint16_t desc_len)
 {
   (void)desc_report;
@@ -64,12 +65,17 @@ bool diff_report(hid_gamepad_report_t const *rpt1, hid_gamepad_report_t const *r
   return result;
 }
 
+//--------------------------------------------------------------------+
+// Core functionalities
+//--------------------------------------------------------------------+
+
 // process joystick HID report
-void process_joystick_report(hid_gamepad_report_t const *report)
+void process_joystick_report(hid_gamepad_report_t const *report, uint16_t len)
 {
   // previous report used to compare for changes
   static hid_gamepad_report_t prev_report = {0};
 
+  len--;
 
   hid_gamepad_report_t dev_report;
   memcpy(&dev_report, report, sizeof(dev_report));
@@ -90,60 +96,29 @@ void process_joystick_report(hid_gamepad_report_t const *report)
   prev_report = dev_report;
 }
 
-static inline void keyboard_key_pressed_handler(uint8_t keycode)
+static inline void keyboard_key_handler(uint8_t keycode, bool enabled)
 {
   switch (keycode) 
   {
-    case HID_KEY_KEYPAD_0:
-      board_toggle_output(FIRE_BTN, HIGH);
+    case HID_KEY_KEYPAD_0: case HID_KEY_J: case HID_KEY_Z:
+      board_toggle_output(FIRE_BTN, enabled);
       break;
-    case HID_KEY_KEYPAD_8:
-      board_toggle_output(DPAD_UP_PIN, HIGH);
+    case HID_KEY_KEYPAD_8: case HID_KEY_W: case HID_KEY_ARROW_UP:
+      board_toggle_output(DPAD_UP_PIN, enabled);
       break;
-    case HID_KEY_KEYPAD_6:
-      board_toggle_output(DPAD_RIGHT_PIN, HIGH);
+    case HID_KEY_KEYPAD_6: case HID_KEY_D: case HID_KEY_ARROW_RIGHT:
+      board_toggle_output(DPAD_RIGHT_PIN, enabled);
       break;
-    case HID_KEY_KEYPAD_5:
-      board_toggle_output(DPAD_DOWN_PIN, HIGH);
+    case HID_KEY_KEYPAD_5: case HID_KEY_KEYPAD_2: case HID_KEY_S: case HID_KEY_ARROW_DOWN:
+      board_toggle_output(DPAD_DOWN_PIN, enabled);
       break;
-    case HID_KEY_KEYPAD_2:
-      board_toggle_output(DPAD_DOWN_PIN, HIGH);
-      break;
-    case HID_KEY_KEYPAD_4:
-      board_toggle_output(DPAD_LEFT_PIN, HIGH);
+    case HID_KEY_KEYPAD_4: case HID_KEY_A: case HID_KEY_ARROW_LEFT:
+      board_toggle_output(DPAD_LEFT_PIN, enabled);
       break;
     default:
       break;
   }
 }
-
-static inline void keyboard_key_released_handler(uint8_t keycode)
-{
-  switch (keycode) 
-  {
-    case HID_KEY_KEYPAD_0:
-      board_toggle_output(FIRE_BTN, LOW);
-      break;
-    case HID_KEY_KEYPAD_8:
-      board_toggle_output(DPAD_UP_PIN, LOW);
-      break;
-    case HID_KEY_KEYPAD_6:
-      board_toggle_output(DPAD_RIGHT_PIN, LOW);
-      break;
-    case HID_KEY_KEYPAD_5:
-      board_toggle_output(DPAD_DOWN_PIN, LOW);
-      break;
-    case HID_KEY_KEYPAD_2:
-      board_toggle_output(DPAD_DOWN_PIN, LOW);
-      break;
-    case HID_KEY_KEYPAD_4:
-      board_toggle_output(DPAD_LEFT_PIN, LOW);
-      break;
-    default:
-      break;
-  }
-}
-
 
 static inline bool find_key_in_report(hid_keyboard_report_t const *report, uint8_t keycode) 
 {
@@ -172,8 +147,7 @@ void process_keyboard_report(hid_keyboard_report_t const *report)
 
   for (auto const& keycode : released_keys)
   {
-    printf("released %04x\n", keycode);
-    keyboard_key_released_handler(keycode);
+    keyboard_key_handler(keycode, false);
   }
   
   for (uint8_t i = 0; i < 6; i++) // 6 key rollover
@@ -187,8 +161,7 @@ void process_keyboard_report(hid_keyboard_report_t const *report)
       else 
       {
         // not existed in previous report means the current key is pressed
-        printf("pressed %04x\n", report->keycode[i]);
-        keyboard_key_pressed_handler(report->keycode[i]);
+        keyboard_key_handler(report->keycode[i], true);
       }
     }
   }
@@ -207,7 +180,7 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
     process_keyboard_report((hid_keyboard_report_t const *) report);
     break;
   default:
-    process_joystick_report((hid_gamepad_report_t const *) report);
+    process_joystick_report((hid_gamepad_report_t const *) report, len);
     break;
   }
 
@@ -223,11 +196,11 @@ inline void board_toggle_output(uint8_t pin, uint8_t enabled)
   enabled ? gpio_put(pin, LOW) : gpio_put(pin, HIGH);
 }
 
-static inline void dev_dpad_handler(uint8_t mask)
+static inline void dev_dpad_handler(uint8_t state)
 {
-  printf("dpad mask: %04x\n", mask);
+  printf("dpad state: %02x\n", state);
 
-  if (mask & GAMEPAD_HAT_UP) 
+  if (state == GAMEPAD_HAT_UP) 
   {
     gpio_put(DPAD_UP_PIN, LOW);
     gpio_put(DPAD_RIGHT_PIN, HIGH);
@@ -236,7 +209,7 @@ static inline void dev_dpad_handler(uint8_t mask)
     return;
   }
   
-  if (mask & GAMEPAD_HAT_UP_RIGHT) 
+  if (state == GAMEPAD_HAT_UP_RIGHT) 
   {
     gpio_put(DPAD_UP_PIN, LOW);
     gpio_put(DPAD_RIGHT_PIN, LOW);
@@ -245,7 +218,7 @@ static inline void dev_dpad_handler(uint8_t mask)
     return;
   }
 
-  if (mask & GAMEPAD_HAT_RIGHT) 
+  if (state == GAMEPAD_HAT_RIGHT) 
   {
     gpio_put(DPAD_UP_PIN, HIGH);
     gpio_put(DPAD_RIGHT_PIN, LOW);
@@ -254,7 +227,7 @@ static inline void dev_dpad_handler(uint8_t mask)
     return;
   }
     
-  if (mask & GAMEPAD_HAT_DOWN_RIGHT) 
+  if (state == GAMEPAD_HAT_DOWN_RIGHT) 
   {
     gpio_put(DPAD_UP_PIN, HIGH);
     gpio_put(DPAD_RIGHT_PIN, LOW);
@@ -263,7 +236,7 @@ static inline void dev_dpad_handler(uint8_t mask)
     return;
   }
   
-  if (mask & GAMEPAD_HAT_DOWN) 
+  if (state == GAMEPAD_HAT_DOWN) 
   {
     gpio_put(DPAD_UP_PIN, HIGH);
     gpio_put(DPAD_RIGHT_PIN, HIGH);
@@ -272,7 +245,7 @@ static inline void dev_dpad_handler(uint8_t mask)
     return;
   }
 
-  if (mask & GAMEPAD_HAT_DOWN_LEFT) 
+  if (state == GAMEPAD_HAT_DOWN_LEFT) 
   {
     gpio_put(DPAD_UP_PIN, HIGH);
     gpio_put(DPAD_RIGHT_PIN, HIGH);
@@ -281,7 +254,7 @@ static inline void dev_dpad_handler(uint8_t mask)
     return;
   }
 
-  if (mask & GAMEPAD_HAT_LEFT) 
+  if (state == GAMEPAD_HAT_LEFT) 
   {
     gpio_put(DPAD_UP_PIN, HIGH);
     gpio_put(DPAD_RIGHT_PIN, HIGH);
@@ -290,7 +263,7 @@ static inline void dev_dpad_handler(uint8_t mask)
     return;
   }
 
-  if (mask & GAMEPAD_HAT_UP_LEFT) 
+  if (state == GAMEPAD_HAT_UP_LEFT) 
   {
     gpio_put(DPAD_UP_PIN, LOW);
     gpio_put(DPAD_RIGHT_PIN, HIGH);
@@ -299,7 +272,7 @@ static inline void dev_dpad_handler(uint8_t mask)
     return;
   }
 
-  if (mask & GAMEPAD_HAT_CENTERED) 
+  if (state == GAMEPAD_HAT_CENTERED) 
   {
     gpio_put(DPAD_UP_PIN, HIGH);
     gpio_put(DPAD_RIGHT_PIN, HIGH);
