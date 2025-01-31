@@ -5,10 +5,9 @@
 #include "pico/stdlib.h"
 #include "hid_app.h"
 
+#include <list>
 #include <set>
 #include <algorithm>
-
-using namespace std;
 
 //--------------------------------------------------------------------+
 // MACRO TYPEDEF CONSTANT ENUM DECLARATION
@@ -87,7 +86,7 @@ void process_joystick_report(hid_gamepad_report_t const *report, uint16_t len)
 
     dev_dpad_handler(dev_report.hat);
 
-    // board_toggle_output(DPAD_UP_PIN, dev_report.west);
+    // board_toggle_output(UP_PIN, dev_report.west);
     // board_toggle_output(FIRE_BTN, dev_report.south);
     // board_toggle_output(JUMP_BTN, dev_report.north);
     board_toggle_output(FIRE_BTN, dev_report.buttons & (GAMEPAD_BUTTON_A | GAMEPAD_BUTTON_B | GAMEPAD_BUTTON_C));
@@ -104,66 +103,128 @@ static inline void keyboard_key_handler(uint8_t keycode, bool enabled)
       board_toggle_output(FIRE_BTN, enabled);
       break;
     case HID_KEY_KEYPAD_8: case HID_KEY_W: case HID_KEY_ARROW_UP:
-      board_toggle_output(DPAD_UP_PIN, enabled);
+      board_toggle_output(UP_PIN, enabled);
       break;
     case HID_KEY_KEYPAD_6: case HID_KEY_D: case HID_KEY_ARROW_RIGHT:
-      board_toggle_output(DPAD_RIGHT_PIN, enabled);
+      board_toggle_output(RIGHT_PIN, enabled);
       break;
     case HID_KEY_KEYPAD_5: case HID_KEY_KEYPAD_2: case HID_KEY_S: case HID_KEY_ARROW_DOWN:
-      board_toggle_output(DPAD_DOWN_PIN, enabled);
+      board_toggle_output(DOWN_PIN, enabled);
       break;
     case HID_KEY_KEYPAD_4: case HID_KEY_A: case HID_KEY_ARROW_LEFT:
-      board_toggle_output(DPAD_LEFT_PIN, enabled);
+      board_toggle_output(LEFT_PIN, enabled);
       break;
     default:
       break;
   }
 }
 
-static inline bool find_key_in_report(hid_keyboard_report_t const *report, uint8_t keycode) 
+// it's actually horrible
+static inline void socd_key_filter(std::list<uint8_t>& keycodes)
+{
+  uint8_t keycode = keycodes.back();
+
+  switch (keycode) 
+  {  
+    case HID_KEY_KEYPAD_8: case HID_KEY_W: case HID_KEY_ARROW_UP:
+    {
+      auto iterator = std::remove_if(keycodes.begin(), keycodes.end(), [](uint8_t k){
+        return k == HID_KEY_KEYPAD_5 
+          || k == HID_KEY_KEYPAD_2 
+          || k == HID_KEY_S 
+          || k == HID_KEY_ARROW_DOWN;
+      });
+      keycodes.erase(iterator, keycodes.end());
+      board_toggle_output(DOWN_PIN, HIGH);
+      break;
+    }
+    case HID_KEY_KEYPAD_6: case HID_KEY_D: case HID_KEY_ARROW_RIGHT:
+    {
+      auto iterator = std::remove_if(keycodes.begin(), keycodes.end(), [](uint8_t k){
+        return k == HID_KEY_KEYPAD_4 
+          || k == HID_KEY_A 
+          || k == HID_KEY_ARROW_LEFT; 
+      });
+      keycodes.erase(iterator, keycodes.end());
+      board_toggle_output(LEFT_PIN, HIGH);
+      break;
+    }
+    case HID_KEY_KEYPAD_5: case HID_KEY_KEYPAD_2: case HID_KEY_S: case HID_KEY_ARROW_DOWN:
+    {
+      auto iterator = std::remove_if(keycodes.begin(), keycodes.end(), [](uint8_t k){
+        return k == HID_KEY_KEYPAD_8
+          || k == HID_KEY_W
+          || k == HID_KEY_ARROW_UP;
+      });
+      keycodes.erase(iterator, keycodes.end());
+      board_toggle_output(UP_PIN, HIGH);
+      break;
+    }
+    case HID_KEY_KEYPAD_4: case HID_KEY_A: case HID_KEY_ARROW_LEFT:
+    {
+      auto iterator = std::remove_if(keycodes.begin(), keycodes.end(), [](uint8_t k){
+        return k == HID_KEY_KEYPAD_6
+          || k == HID_KEY_D
+          || k == HID_KEY_ARROW_RIGHT;
+      });
+      keycodes.erase(iterator, keycodes.end());
+      board_toggle_output(RIGHT_PIN, HIGH);
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+static inline bool find_key_in_report(const hid_keyboard_report_t &report, uint8_t keycode) 
 {
   for (uint8_t i = 0; i < 6; i++) 
   {
-    if (report->keycode[i] == keycode) return true;
+    if (report.keycode[i] == keycode) return true;
   }
 
   return false;
 }
 
-void process_keyboard_report(hid_keyboard_report_t const *report)
+void process_keyboard_report(const hid_keyboard_report_t *report)
 {
+  // needs to be static since it has to be persisted between calls
+
   static hid_keyboard_report_t prev_report = { 0, 0, { 0 } };
 
-  set<uint8_t> prev_keycodes{ begin(prev_report.keycode), end(prev_report.keycode) };
-  set<uint8_t> curr_keycodes{ begin(report->keycode), end(report->keycode) };
+  // use a vector easily to remove keycodes when SOCD will be implemented
 
-  set<uint8_t> released_keys{};
+  std::list<uint8_t> report_keycodes { std::begin(report->keycode), std::end(report->keycode) };
 
-  set_difference(
+  //socd_key_filter(report_keycodes);
+
+  for (auto const &keycode : report_keycodes)
+  {
+    if (!keycode) continue;
+    
+    if (!find_key_in_report(prev_report, keycode)) 
+    {
+      keyboard_key_handler(keycode, true);
+    } 
+  }
+  
+  // use two sets to quickly find which keycode isn't present in the current report
+
+  std::set<uint8_t> prev_keycodes{ std::begin(prev_report.keycode), std::end(prev_report.keycode) };
+  std::set<uint8_t> curr_keycodes{ report_keycodes.begin(), report_keycodes.end() };
+
+  std::set<uint8_t> released_keys{};
+
+  std::set_difference(
     prev_keycodes.begin(), prev_keycodes.end(), 
     curr_keycodes.begin(), curr_keycodes.end(),
-    inserter(released_keys, released_keys.begin())
+    std::inserter(released_keys, released_keys.begin())
   );
 
   for (auto const& keycode : released_keys)
   {
+    // disable the output of the released key
     keyboard_key_handler(keycode, false);
-  }
-  
-  for (uint8_t i = 0; i < 6; i++) // 6 key rollover
-  {
-    if (report->keycode[i]) 
-    {
-      if (find_key_in_report(&prev_report, report->keycode[i])) 
-      {
-        // exist in previous report means the current key is holding
-      } 
-      else 
-      {
-        // not existed in previous report means the current key is pressed
-        keyboard_key_handler(report->keycode[i], true);
-      }
-    }
   }
 
   prev_report = *report;
@@ -177,10 +238,10 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
   switch (itf_protocol)
   {
   case HID_ITF_PROTOCOL_KEYBOARD:
-    process_keyboard_report((hid_keyboard_report_t const *) report);
+    process_keyboard_report(reinterpret_cast<hid_keyboard_report_t const *>(report));
     break;
   default:
-    process_joystick_report((hid_gamepad_report_t const *) report, len);
+    process_joystick_report(reinterpret_cast<hid_gamepad_report_t const *>(report), len);
     break;
   }
 
@@ -202,82 +263,82 @@ static inline void dev_dpad_handler(uint8_t state)
 
   if (state == GAMEPAD_HAT_UP) 
   {
-    gpio_put(DPAD_UP_PIN, LOW);
-    gpio_put(DPAD_RIGHT_PIN, HIGH);
-    gpio_put(DPAD_DOWN_PIN, HIGH);
-    gpio_put(DPAD_LEFT_PIN, HIGH);
+    gpio_put(UP_PIN, LOW);
+    gpio_put(RIGHT_PIN, HIGH);
+    gpio_put(DOWN_PIN, HIGH);
+    gpio_put(LEFT_PIN, HIGH);
     return;
   }
   
   if (state == GAMEPAD_HAT_UP_RIGHT) 
   {
-    gpio_put(DPAD_UP_PIN, LOW);
-    gpio_put(DPAD_RIGHT_PIN, LOW);
-    gpio_put(DPAD_DOWN_PIN, HIGH);
-    gpio_put(DPAD_LEFT_PIN, HIGH);
+    gpio_put(UP_PIN, LOW);
+    gpio_put(RIGHT_PIN, LOW);
+    gpio_put(DOWN_PIN, HIGH);
+    gpio_put(LEFT_PIN, HIGH);
     return;
   }
 
   if (state == GAMEPAD_HAT_RIGHT) 
   {
-    gpio_put(DPAD_UP_PIN, HIGH);
-    gpio_put(DPAD_RIGHT_PIN, LOW);
-    gpio_put(DPAD_DOWN_PIN, HIGH);
-    gpio_put(DPAD_LEFT_PIN, HIGH);
+    gpio_put(UP_PIN, HIGH);
+    gpio_put(RIGHT_PIN, LOW);
+    gpio_put(DOWN_PIN, HIGH);
+    gpio_put(LEFT_PIN, HIGH);
     return;
   }
     
   if (state == GAMEPAD_HAT_DOWN_RIGHT) 
   {
-    gpio_put(DPAD_UP_PIN, HIGH);
-    gpio_put(DPAD_RIGHT_PIN, LOW);
-    gpio_put(DPAD_DOWN_PIN, LOW);
-    gpio_put(DPAD_LEFT_PIN, HIGH);
+    gpio_put(UP_PIN, HIGH);
+    gpio_put(RIGHT_PIN, LOW);
+    gpio_put(DOWN_PIN, LOW);
+    gpio_put(LEFT_PIN, HIGH);
     return;
   }
   
   if (state == GAMEPAD_HAT_DOWN) 
   {
-    gpio_put(DPAD_UP_PIN, HIGH);
-    gpio_put(DPAD_RIGHT_PIN, HIGH);
-    gpio_put(DPAD_DOWN_PIN, LOW);
-    gpio_put(DPAD_LEFT_PIN, HIGH);
+    gpio_put(UP_PIN, HIGH);
+    gpio_put(RIGHT_PIN, HIGH);
+    gpio_put(DOWN_PIN, LOW);
+    gpio_put(LEFT_PIN, HIGH);
     return;
   }
 
   if (state == GAMEPAD_HAT_DOWN_LEFT) 
   {
-    gpio_put(DPAD_UP_PIN, HIGH);
-    gpio_put(DPAD_RIGHT_PIN, HIGH);
-    gpio_put(DPAD_DOWN_PIN, LOW);
-    gpio_put(DPAD_LEFT_PIN, LOW);
+    gpio_put(UP_PIN, HIGH);
+    gpio_put(RIGHT_PIN, HIGH);
+    gpio_put(DOWN_PIN, LOW);
+    gpio_put(LEFT_PIN, LOW);
     return;
   }
 
   if (state == GAMEPAD_HAT_LEFT) 
   {
-    gpio_put(DPAD_UP_PIN, HIGH);
-    gpio_put(DPAD_RIGHT_PIN, HIGH);
-    gpio_put(DPAD_DOWN_PIN, HIGH);
-    gpio_put(DPAD_LEFT_PIN, LOW);
+    gpio_put(UP_PIN, HIGH);
+    gpio_put(RIGHT_PIN, HIGH);
+    gpio_put(DOWN_PIN, HIGH);
+    gpio_put(LEFT_PIN, LOW);
     return;
   }
 
   if (state == GAMEPAD_HAT_UP_LEFT) 
   {
-    gpio_put(DPAD_UP_PIN, LOW);
-    gpio_put(DPAD_RIGHT_PIN, HIGH);
-    gpio_put(DPAD_DOWN_PIN, HIGH);
-    gpio_put(DPAD_LEFT_PIN, LOW);
+    gpio_put(UP_PIN, LOW);
+    gpio_put(RIGHT_PIN, HIGH);
+    gpio_put(DOWN_PIN, HIGH);
+    gpio_put(LEFT_PIN, LOW);
     return;
   }
 
   if (state == GAMEPAD_HAT_CENTERED) 
   {
-    gpio_put(DPAD_UP_PIN, HIGH);
-    gpio_put(DPAD_RIGHT_PIN, HIGH);
-    gpio_put(DPAD_DOWN_PIN, HIGH);
-    gpio_put(DPAD_LEFT_PIN, HIGH);
+    gpio_put(UP_PIN, HIGH);
+    gpio_put(RIGHT_PIN, HIGH);
+    gpio_put(DOWN_PIN, HIGH);
+    gpio_put(LEFT_PIN, HIGH);
     return;
   }
 }
@@ -305,21 +366,21 @@ static inline void stick_handler(uint8_t deg_value_y, uint8_t deg_value_x, uint8
 {
   if (deg_value_y == 127)
   {
-    gpio_put(DPAD_UP_PIN, HIGH);
-    gpio_put(DPAD_DOWN_PIN, HIGH);
+    gpio_put(UP_PIN, HIGH);
+    gpio_put(DOWN_PIN, HIGH);
   }
   if (deg_value_y > (127 + dead_zone))
   {
-    gpio_put(DPAD_DOWN_PIN, LOW);
+    gpio_put(DOWN_PIN, LOW);
   }
   if (deg_value_y < (127 - dead_zone))
   {
-    gpio_put(DPAD_UP_PIN, LOW);
+    gpio_put(UP_PIN, LOW);
   }
   deg_value_x > (127 + dead_zone)
-      ? gpio_put(DPAD_RIGHT_PIN, LOW)
-      : gpio_put(DPAD_RIGHT_PIN, HIGH);
+      ? gpio_put(RIGHT_PIN, LOW)
+      : gpio_put(RIGHT_PIN, HIGH);
   deg_value_x < (127 - dead_zone)
-      ? gpio_put(DPAD_LEFT_PIN, LOW)
-      : gpio_put(DPAD_LEFT_PIN, HIGH);
+      ? gpio_put(LEFT_PIN, LOW)
+      : gpio_put(LEFT_PIN, HIGH);
 }

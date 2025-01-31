@@ -4,10 +4,10 @@
 void board_output_init()
 {
   uint8_t output[5] = {
-      DPAD_UP_PIN,
-      DPAD_DOWN_PIN,
-      DPAD_RIGHT_PIN,
-      DPAD_LEFT_PIN,
+      UP_PIN,
+      DOWN_PIN,
+      RIGHT_PIN,
+      LEFT_PIN,
       FIRE_BTN,
   };
 
