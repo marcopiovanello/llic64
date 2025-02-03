@@ -4,7 +4,7 @@
 // ---------------------------------------------+
 
 #define FIRE_BTN 9
-#define JUMP_BTN 19
+#define JUMP_BTN 20
 
 // directionals
 #define UP_PIN 20

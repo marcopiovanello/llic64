@@ -3,7 +3,7 @@
 //-----------------------------+
 
 // toggle a pin to the provided state
-static inline void board_toggle_output(uint8_t pin, uint8_t enabled);
+static inline void board_toggle_output(uint8_t pin, bool enabled);
 
 // handle "8-way" dpad mode (same behaviour as joystick)
 static inline void dev_dpad_handler(uint8_t dpad_value);

@@ -4,6 +4,7 @@
 
 #include "pico/stdlib.h"
 #include "hid_app.h"
+#include "gamepads_report.h"
 
 #include <list>
 #include <set>
@@ -13,10 +14,7 @@
 // MACRO TYPEDEF CONSTANT ENUM DECLARATION
 //--------------------------------------------------------------------+
 
-extern "C" void hid_app_task(void)
-{
-    return;
-}
+extern "C" void hid_app_task(void) { return; }
 
 //--------------------------------------------------------------------+
 // TinyUSB Callbacks
@@ -50,7 +48,7 @@ inline bool diff_than_2(uint8_t x, uint8_t y)
 }
 
 // check if 2 reports are different enough
-bool diff_report(hid_gamepad_report_t const *rpt1, hid_gamepad_report_t const *rpt2)
+bool diff_report(m30_8bitdo_report_t const *rpt1, m30_8bitdo_report_t const *rpt2)
 {
   bool result;
 
@@ -59,7 +57,7 @@ bool diff_report(hid_gamepad_report_t const *rpt1, hid_gamepad_report_t const *r
            diff_than_2(rpt1->z, rpt2->z) || diff_than_2(rpt1->rz, rpt2->rz);
 
   // check the result with mem compare
-  result |= memcmp(&rpt1->ry + 1, &rpt2->ry + 1, sizeof(hid_gamepad_report_t) - 6);
+  result |= memcmp(&rpt1->rz + 1, &rpt2->rz + 1, sizeof(m30_8bitdo_report_t) - 4);
 
   return result;
 }
@@ -69,27 +67,27 @@ bool diff_report(hid_gamepad_report_t const *rpt1, hid_gamepad_report_t const *r
 //--------------------------------------------------------------------+
 
 // process joystick HID report
-void process_joystick_report(hid_gamepad_report_t const *report, uint16_t len)
+void process_joystick_report(uint8_t const *report, uint16_t len)
 {
   // previous report used to compare for changes
-  static hid_gamepad_report_t prev_report = {0};
+  static m30_8bitdo_report_t prev_report = {0};
 
+  uint8_t const report_id = report[0];
+  report++;
   len--;
 
-  hid_gamepad_report_t dev_report;
+  m30_8bitdo_report_t dev_report;
   memcpy(&dev_report, report, sizeof(dev_report));
 
   if (diff_report(&prev_report, &dev_report))
   {
-
     stick_handler(dev_report.rz, dev_report.z, 10);
 
-    dev_dpad_handler(dev_report.hat);
+    board_toggle_output(FIRE_BTN, dev_report.button_A);
+    // board_toggle_output(JUMP_BTN, dev_report.button_B || (dev_report.hat == 0x0));
 
-    // board_toggle_output(UP_PIN, dev_report.west);
-    // board_toggle_output(FIRE_BTN, dev_report.south);
-    // board_toggle_output(JUMP_BTN, dev_report.north);
-    board_toggle_output(FIRE_BTN, dev_report.buttons & (GAMEPAD_BUTTON_A | GAMEPAD_BUTTON_B | GAMEPAD_BUTTON_C));
+    dev_dpad_handler(dev_report.hat);
+    // board_toggle_output(FIRE_BTN, dev_report.buttons & (GAMEPAD_BUTTON_A | GAMEPAD_BUTTON_B | GAMEPAD_BUTTON_C));
   }
 
   prev_report = dev_report;
@@ -135,7 +133,7 @@ static inline void socd_key_filter(std::list<uint8_t>& keycodes)
           || k == HID_KEY_ARROW_DOWN;
       });
       keycodes.erase(iterator, keycodes.end());
-      board_toggle_output(DOWN_PIN, HIGH);
+      board_toggle_output(DOWN_PIN, false);
       break;
     }
     case HID_KEY_KEYPAD_6: case HID_KEY_D: case HID_KEY_ARROW_RIGHT:
@@ -146,7 +144,7 @@ static inline void socd_key_filter(std::list<uint8_t>& keycodes)
           || k == HID_KEY_ARROW_LEFT; 
       });
       keycodes.erase(iterator, keycodes.end());
-      board_toggle_output(LEFT_PIN, HIGH);
+      board_toggle_output(LEFT_PIN, false);
       break;
     }
     case HID_KEY_KEYPAD_5: case HID_KEY_KEYPAD_2: case HID_KEY_S: case HID_KEY_ARROW_DOWN:
@@ -157,7 +155,7 @@ static inline void socd_key_filter(std::list<uint8_t>& keycodes)
           || k == HID_KEY_ARROW_UP;
       });
       keycodes.erase(iterator, keycodes.end());
-      board_toggle_output(UP_PIN, HIGH);
+      board_toggle_output(UP_PIN, false);
       break;
     }
     case HID_KEY_KEYPAD_4: case HID_KEY_A: case HID_KEY_ARROW_LEFT:
@@ -168,7 +166,7 @@ static inline void socd_key_filter(std::list<uint8_t>& keycodes)
           || k == HID_KEY_ARROW_RIGHT;
       });
       keycodes.erase(iterator, keycodes.end());
-      board_toggle_output(RIGHT_PIN, HIGH);
+      board_toggle_output(RIGHT_PIN, false);
       break;
     }
     default:
@@ -192,11 +190,11 @@ void process_keyboard_report(const hid_keyboard_report_t *report)
 
   static hid_keyboard_report_t prev_report = { 0, 0, { 0 } };
 
-  // use a vector easily to remove keycodes when SOCD will be implemented
+  // use a list easily to remove keycodes when SOCD will be implemented
 
   std::list<uint8_t> report_keycodes { std::begin(report->keycode), std::end(report->keycode) };
 
-  //socd_key_filter(report_keycodes);
+  socd_key_filter(report_keycodes);
 
   for (auto const &keycode : report_keycodes)
   {
@@ -241,7 +239,7 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
     process_keyboard_report(reinterpret_cast<hid_keyboard_report_t const *>(report));
     break;
   default:
-    process_joystick_report(reinterpret_cast<hid_gamepad_report_t const *>(report), len);
+    process_joystick_report(report, len);
     break;
   }
 
@@ -252,7 +250,7 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
   }
 }
 
-inline void board_toggle_output(uint8_t pin, uint8_t enabled)
+inline void board_toggle_output(uint8_t pin, bool enabled)
 {
   enabled ? gpio_put(pin, LOW) : gpio_put(pin, HIGH);
 }
@@ -261,7 +259,7 @@ static inline void dev_dpad_handler(uint8_t state)
 {
   printf("dpad state: %02x\n", state);
 
-  if (state == GAMEPAD_HAT_UP) 
+  if (state == 0x0) 
   {
     gpio_put(UP_PIN, LOW);
     gpio_put(RIGHT_PIN, HIGH);
@@ -270,7 +268,7 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
   
-  if (state == GAMEPAD_HAT_UP_RIGHT) 
+  if (state == 0x1) 
   {
     gpio_put(UP_PIN, LOW);
     gpio_put(RIGHT_PIN, LOW);
@@ -279,7 +277,7 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
 
-  if (state == GAMEPAD_HAT_RIGHT) 
+  if (state == 0x2) 
   {
     gpio_put(UP_PIN, HIGH);
     gpio_put(RIGHT_PIN, LOW);
@@ -288,7 +286,7 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
     
-  if (state == GAMEPAD_HAT_DOWN_RIGHT) 
+  if (state == 0x3) 
   {
     gpio_put(UP_PIN, HIGH);
     gpio_put(RIGHT_PIN, LOW);
@@ -297,7 +295,7 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
   
-  if (state == GAMEPAD_HAT_DOWN) 
+  if (state == 0x4) 
   {
     gpio_put(UP_PIN, HIGH);
     gpio_put(RIGHT_PIN, HIGH);
@@ -306,7 +304,7 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
 
-  if (state == GAMEPAD_HAT_DOWN_LEFT) 
+  if (state == 0x5) 
   {
     gpio_put(UP_PIN, HIGH);
     gpio_put(RIGHT_PIN, HIGH);
@@ -315,7 +313,7 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
 
-  if (state == GAMEPAD_HAT_LEFT) 
+  if (state == 0x6) 
   {
     gpio_put(UP_PIN, HIGH);
     gpio_put(RIGHT_PIN, HIGH);
@@ -324,7 +322,7 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
 
-  if (state == GAMEPAD_HAT_UP_LEFT) 
+  if (state == 0x7) 
   {
     gpio_put(UP_PIN, LOW);
     gpio_put(RIGHT_PIN, HIGH);
@@ -333,7 +331,7 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
 
-  if (state == GAMEPAD_HAT_CENTERED) 
+  if (state == 0x8) 
   {
     gpio_put(UP_PIN, HIGH);
     gpio_put(RIGHT_PIN, HIGH);
@@ -342,12 +340,13 @@ static inline void dev_dpad_handler(uint8_t state)
     return;
   }
 }
+
 /*
   Handle the stick rotation in the 2 axis
   --------------------------------------------------------------------
   The default state is the following:
   127   127    -> released
-  The following transorm will be applied for-each report
+  The following mapping will be applied for-each report
    y     x
   127   0      -> Left
   127   255    -> Right
@@ -355,7 +354,7 @@ static inline void dev_dpad_handler(uint8_t state)
   255   127    -> Down
   --------------------------------------------------------------------
   A dead zone can be applied to capture the input.
-  The output transform will be the following, where d is the dead zone
+  The output mapping will be the following, where d is the dead zone
      y       x
   127     (127-d)
   127     (127+d)

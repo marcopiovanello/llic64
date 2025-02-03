@@ -38,6 +38,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         )
 
+target_include_directories(${PROJECT_NAME} PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/headers
+)
+
 target_link_libraries(${PROJECT_NAME} pico_stdlib pico_multicore tinyusb_host)
 
 pico_add_extra_outputs(${PROJECT_NAME})
