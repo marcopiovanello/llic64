@@ -82,12 +82,17 @@ void process_joystick_report(uint8_t const *report, uint16_t len)
   if (diff_report(&prev_report, &dev_report))
   {
     stick_handler(dev_report.rz, dev_report.z, 10);
+    // board_toggle_output(JUMP_BTN, dev_report.button_B || (dev_report.hat == 0x0));
 
     board_toggle_output(FIRE_BTN, dev_report.button_A);
-    // board_toggle_output(JUMP_BTN, dev_report.button_B || (dev_report.hat == 0x0));
 
     dev_dpad_handler(dev_report.hat);
     // board_toggle_output(FIRE_BTN, dev_report.buttons & (GAMEPAD_BUTTON_A | GAMEPAD_BUTTON_B | GAMEPAD_BUTTON_C));
+
+    if (dev_report.hat > 1 && dev_report.button_B) 
+    {
+      board_toggle_output(JUMP_BTN, true);
+    }
   }
 
   prev_report = dev_report;
